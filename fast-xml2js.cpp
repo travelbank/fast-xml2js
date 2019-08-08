@@ -26,7 +26,7 @@ void ParseString(const FunctionCallbackInfo<Value>& args) {
   if(args.Length() != 2)
   {
     isolate->ThrowException(Exception::TypeError(
-      String::NewFromUtf8(isolate, "Wrong number of arguments")));
+      String::NewFromUtf8(isolate, "Wrong number of arguments",v8::NewStringType::kNormal).ToLocalChecked())); //prolly best to use .FromMaybe(default_value) instead, for future reference
     return;
   }
 
@@ -44,11 +44,11 @@ void ParseString(const FunctionCallbackInfo<Value>& args) {
     return;
   }
 
-  Local<Context> context = Context::New(isolate);
+  Local<Context> context = isolate->GetCurrentContext();
 
   auto param1 = args[0]->ToString(context).ToLocalChecked();
-  char *xml = new char[param1->Utf8Length() + 1];
-  param1->WriteUtf8(isolate, xml);
+  auto xml = std::make_unique<char[]>(param1->Utf8Length(isolate) + 1);
+  param1->WriteUtf8(isolate, xml.get());
 
   Local<Object> obj = Object::New(isolate);
   Local<Value> errorString = Null(isolate);
@@ -57,7 +57,7 @@ void ParseString(const FunctionCallbackInfo<Value>& args) {
   {
 
     xml_document<> doc;
-    doc.parse<0>(xml);
+    doc.parse<0>(xml.get());
 
     std::stack<xml_node<> *> nodeStack;
     std::stack<Local<Object>> objStack;
@@ -192,13 +192,11 @@ void ParseString(const FunctionCallbackInfo<Value>& args) {
     errorString = String::NewFromUtf8(isolate, "An unknown error occurred while parsing.");
   }
 
-  delete[] xml;
-
   Local<Function> cb = Local<Function>::Cast(args[1]);
   const unsigned argc = 2;
   Local<Value> argv[argc] = { errorString, obj };
 
-  cb->Call(Null(isolate), argc, argv);
+  cb->Call(context, Null(isolate), argc, argv).ToLocalChecked();
 }
 
 void init(Local<Object> exports) {
