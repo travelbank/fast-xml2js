@@ -1,6 +1,6 @@
 {
   "name": "@travelbank/fast-xml2js",
-  "version": "2.0.1",
+  "version": "2.0.2",
   "description": "In-place replacement for xml2js parseString. This is about 20x-30x faster and makes use of the rapidxml C++ library. Node.js 12+",
   "main": "index.js",
   "scripts": {
